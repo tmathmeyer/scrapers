@@ -1,0 +1,3 @@
+[submodule "jdb"]
+	path = jdb
+	url = git@github.com:tmathmeyer/scrapers.jdb.git
