@@ -51,7 +51,7 @@ class TableContent():
   def __init__(self, *rowcounts):
     self._rowcounts = list(rowcounts)
 
-  def From(self, tabletag:html.XMLTag):
+  def From(self, tabletag:html.XMLTag, lazy=False) -> ([None], int):
     parsed_rows = []
     for row in tabletag.Select('tr'):
       if not self._rowcounts:
@@ -63,6 +63,8 @@ class TableContent():
         parsed_rows.append(parsed)
 
     if self._rowcounts:
+      if lazy:
+        return parsed_rows, len(self._rowcounts)
       raise ValueError('exhausted available rows!')
 
-    return parsed_rows
+    return parsed_rows, 0

@@ -76,6 +76,10 @@ class XMLTag():
     return self._parent
 
   @typecheck.Ensure
+  def Attr(self, attr:str, *args):
+    return self._attrs.get(attr, *args)
+
+  @typecheck.Ensure
   def Children(self):
     yield from self._children
 
@@ -104,10 +108,10 @@ class XMLTag():
     for k,v in attrs.items():
       if k not in self._attrs:
         return False
-      if type(v) is str:
+      if type(v) == str:
         if v != self._attrs[k]:
           return False
-      if not v.matches(self._attrs[k]):
+      elif not v.matches(self._attrs[k]):
         return False
     return True
 
@@ -127,7 +131,8 @@ class XMLTag():
     return f'<{self._tag} .../>'
 
   def PrettyPrint(self, indent=0):
-    print(f'{" "*indent}<{self._tag} ...>')
+    attrs = ' '.join([f'{k}="{v}"' for k,v in self._attrs.items()])
+    print(f'{" "*indent}<{self._tag} {attrs}>')
     for sub in self.Children():
       if type(sub) is not str:
         sub.PrettyPrint(indent+1)
