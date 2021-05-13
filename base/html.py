@@ -83,6 +83,18 @@ class XMLTag():
   def Children(self):
     yield from self._children
 
+  @typecheck.Ensure
+  def LastChild(self):
+    return self._children[-1] if self._children else None
+
+  @typecheck.Ensure
+  def FirstChild(self):
+    return self._children[0] if self._children else None
+
+  @typecheck.Ensure
+  def RemoveLastChild(self):
+    self._children = self._children[:-1]
+
   def _Content(self):
     for child in self.Children():
       if type(child) == XMLTag:
@@ -95,6 +107,9 @@ class XMLTag():
 
   @typecheck.Ensure
   def Select(self, tag=None, **attrs):
+    if '_clazz' in attrs and 'class' not in attrs:
+      attrs['class'] = attrs['_clazz']
+      del attrs['_clazz']
     if self._matches(tag, attrs):
       yield self
     for child in self.Children():
@@ -142,11 +157,12 @@ class XMLTag():
 
 
 class XMLTreeParser(HTMLParserBase):
-  def __init__(self, strict=False):
+  def __init__(self, strict=True, test_invalid_html=None):
     super().__init__()
     self._tag = None
     self._strict = strict
     self._allowVoid = ''
+    self._isKnownToBeMissingClose = test_invalid_html or (lambda *_: False)
 
   def _reset(self):
     self._tag = None
@@ -157,6 +173,8 @@ class XMLTreeParser(HTMLParserBase):
 
   @typecheck.Ensure
   def handleStartTag(self, tag:str, attrs:dict):
+    if self._isKnownToBeMissingClose(tag, attrs):
+      self.handleEndTag(self._tag._tag)
     newtag = XMLTag(self._tag, tag, attrs)
     self._allowVoid = ''
     if tag in VOID_TAGS:
@@ -176,7 +194,20 @@ class XMLTreeParser(HTMLParserBase):
         # don't jump up, just unset the allowed.
         return
     if self._tag._tag != tag:
-      raise ValueError(f'unexpected </{self._tag._tag}>, wanted </{tag}>')
+      # A rare case, could be a <...> instead of a </...>
+      if self._tag.Up() and self._tag._tag == self._tag.Up()._tag:
+        if self._tag.Up().Up() and self._tag.Up().Up()._tag == tag:
+          self._tag.Up().RemoveLastChild()
+          self._tag.Up().Close()
+          self._tag.Up().Up().Close()
+          parent = self._tag.Up().Up().Up()
+          if parent is not None:
+            self._tag = parent
+          return
+      if self._strict:
+        raise ValueError(f'unexpected </{tag}>, wanted </{self._tag._tag}>')
+      else:
+        return
     parent = self._tag.Up()
     self._tag.Close()
     if parent is not None:
