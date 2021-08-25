@@ -4,3 +4,6 @@
 [submodule "cs"]
 	path = cs
 	url = git@github.com:tmathmeyer/scrapers.cs.git
+[submodule "msdocs"]
+	path = msdocs
+	url = git@github.com:tmathmeyer/scrapers.msdocs.git

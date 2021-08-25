@@ -14,6 +14,12 @@ class RowType():
       self._count -= 1
       return parsed, self._count
 
+    def __repr__(self):
+      return str(self)
+
+    def __str__(self):
+      return f'<{self._count} * {self._rowtype}>'
+
   @typecheck.Ensure
   def __mul__(self, count:int):
     return RowType.RowCount(self, count)
@@ -21,18 +27,24 @@ class RowType():
   def ParseRow(self, row):
     raise NotImplementedError()
 
+  def __repr__(self):
+    return str(self)
+
+  def __str__(self):
+    return self.__class__.__name__
+
 
 class TagRow(RowType):
   def __init__(self, tag, **kwargs):
     self._tag = tag
     self._attrs = kwargs
   def ParseRow(self, row):
-    return list(row.Select(tag=self._tag, **self._attrs))
+    return list(row.SelectDirect(tag=self._tag, **self._attrs))
 
 
 class KeyValueRow(RowType):
   def ParseRow(self, row):
-    cells = list(row.Select(tag='td'))
+    cells = list(row.SelectDirect(tag='td'))
     assert len(cells) == 2
     return cells[0].Content(), cells[1].Content()
 
@@ -47,13 +59,18 @@ class WholeRow(RowType):
     return row
 
 
+class ContentRow(RowType):
+  def ParseRow(self, row):
+    return row.Content()
+
+
 class TableContent():
   def __init__(self, *rowcounts):
     self._rowcounts = list(rowcounts)
 
   def From(self, tabletag:html.XMLTag, lazy=False) -> ([None], int):
     parsed_rows = []
-    for row in tabletag.Select('tr'):
+    for row in tabletag.SelectDirect('tr'):
       if not self._rowcounts:
         raise ValueError('exhausted expected rows!')
       parsed, remaining = self._rowcounts[0].ParseRow(row)
@@ -68,3 +85,9 @@ class TableContent():
       raise ValueError('exhausted available rows!')
 
     return parsed_rows, 0
+
+  def __repr__(self):
+    return str(self)
+
+  def __str__(self):
+    return f'Parser{self._rowcounts}'

@@ -83,6 +83,9 @@ class XMLTag():
   def Children(self):
     yield from self._children
 
+  def ChildCount(self):
+    return len(self._children)
+
   @typecheck.Ensure
   def LastChild(self):
     return self._children[-1] if self._children else None
@@ -115,6 +118,19 @@ class XMLTag():
     for child in self.Children():
       if type(child) == XMLTag:
         yield from child.Select(tag, **attrs)
+
+  @typecheck.Ensure
+  def SelectDirect(self, tag=None, **attrs):
+    if '_clazz' in attrs and 'class' not in attrs:
+      attrs['class'] = attrs['_clazz']
+      del attrs['_clazz']
+    if self._matches(tag, attrs):
+      yield self
+    for child in self.Children():
+      if type(child) == XMLTag:
+        if child._matches(tag, attrs):
+          yield child
+
 
   @typecheck.Ensure
   def _matches(self, tag, attrs):
