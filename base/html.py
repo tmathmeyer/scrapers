@@ -72,8 +72,18 @@ class XMLTag():
     self._children = []
 
   @typecheck.Ensure
+  def Tag(self) -> str:
+    return self._tag
+
+  @typecheck.Ensure
   def Up(self) -> 'XMLTag':
     return self._parent
+
+  @typecheck.Ensure
+  def Top(self):
+    if self._parent is None:
+      return self
+    return self._parent.Top()
 
   @typecheck.Ensure
   def Attr(self, attr:str, *args):
@@ -172,8 +182,56 @@ class XMLTag():
     print(f'{" "*indent}</{self._tag}>')
 
 
+class ExtractorTreeParser(HTMLParserBase):
+  def __init__(self, tag:str):
+    super().__init__()
+    self._tags:[XMLTag] = []
+    self._tag:str = tag
+    self._current:XMLTag = None
+
+  def _reset(self):
+    self._tags = []
+
+  @typecheck.Ensure
+  def _content(self):
+    return self._tags
+
+  @typecheck.Ensure
+  def handleStartTag(self, tag:str, attrs:dict):
+    if tag != self._tag and self._current is None:
+      return
+    if self._current is not None:
+      child = XMLTag(self._current, tag, attrs)
+      self._current.AppendChild(child)
+      if tag not in VOID_TAGS:
+        self._current = child
+      return
+    assert self._current is None
+    assert tag == self._tag
+    self._current = XMLTag(None, tag, attrs)
+
+  @typecheck.Ensure
+  def handleEndTag(self, tag:str):
+    if self._current is None:
+      return
+    if self._current.Tag() != tag:
+      print(self._current.Top().PrettyPrint())
+      raise ValueError(f'tried to close <{tag}> on <{self._current}>')
+    self._current.Close()
+    up = self._current.Up()
+    if up is None:
+      self._tags.append(self._current)
+    self._current = up
+
+  @typecheck.Ensure
+  def handleData(self, data:str):
+    data = data.strip()
+    if self._current is not None:
+      self._current.AppendData(data)
+
+
 class XMLTreeParser(HTMLParserBase):
-  def __init__(self, strict=True, test_invalid_html=None):
+  def __init__(self, strict=False, test_invalid_html=None):
     super().__init__()
     self._tag = None
     self._strict = strict
