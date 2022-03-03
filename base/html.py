@@ -215,8 +215,9 @@ class ExtractorTreeParser(HTMLParserBase):
     if self._current is None:
       return
     if self._current.Tag() != tag:
-      print(self._current.Top().PrettyPrint())
-      raise ValueError(f'tried to close <{tag}> on <{self._current}>')
+      #print(f'tried to close <{tag}> on <{self._current}>')
+      self._current = None
+      return
     self._current.Close()
     up = self._current.Up()
     if up is None:
