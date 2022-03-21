@@ -1,6 +1,7 @@
 
 from html.parser import HTMLParser
 import requests
+import re
 
 from impulse.util import typecheck
 
@@ -10,11 +11,24 @@ VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
              'wbr']
 
 
+CACHE_CONTENT = []
+def UrlCacheContent(url:str) -> str:
+  global CACHE_CONTENT
+  for c_url,content in CACHE_CONTENT:
+    if c_url == url:
+      return content
+  if len(CACHE_CONTENT) > 10:
+    CACHE_CONTENT = CACHE_CONTENT[1:]
+  content = str(requests.get(url).content.decode('utf-8'))
+  CACHE_CONTENT.append((url, content))
+  return content
+
+
 class HTMLParserBase(HTMLParser):
 
   @typecheck.Ensure
   def url(self, url:str):
-    content = str(requests.get(url).content.decode('utf-8'))
+    content = UrlCacheContent(url)
     return self.feed(content)
 
   @typecheck.Ensure
@@ -229,6 +243,35 @@ class ExtractorTreeParser(HTMLParserBase):
     data = data.strip()
     if self._current is not None:
       self._current.AppendData(data)
+
+
+class LinkFinderParser(HTMLParserBase):
+  def __init__(self, format):
+    super().__init__()
+    self._links = []
+    self._format = format
+
+  def _reset(self):
+    self._links = []
+
+  @typecheck.Ensure
+  def _content(self):
+    return self._links
+
+  @typecheck.Ensure
+  def handleStartTag(self, tag:str, attrs:dict):
+    if tag != 'a':
+      return
+    if re.match(self._format, attrs['href']):
+      self._links.append(attrs['href'])
+
+  @typecheck.Ensure
+  def handleEndTag(self, tag:str):
+    return
+
+  @typecheck.Ensure
+  def handleData(self, data:str):
+    return
 
 
 class XMLTreeParser(HTMLParserBase):
