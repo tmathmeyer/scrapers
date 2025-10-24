@@ -3,7 +3,7 @@ from html.parser import HTMLParser
 import requests
 import re
 
-from impulse.util import typecheck
+from pylib.types import typecheck
 
 
 VOID_TAGS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -26,51 +26,51 @@ def UrlCacheContent(url:str) -> str:
 
 class HTMLParserBase(HTMLParser):
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def url(self, url:str):
     content = UrlCacheContent(url)
     return self.feed(content)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def file(self, file:str):
     with open(file, 'r') as f:
       return self.feed(f.read())
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def feed(self, content:str):
     self._reset()
     super().feed(content)
     return self._content()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _reset(self):
     raise NotImplementedError()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _content(self):
     raise NotImplementedError()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleStartTag(self, tag:str, attrs:dict):
     raise NotImplementedError()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleEndTag(self, tag:str):
     raise NotImplementedError()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleData(self, data:str):
     raise NotImplementedError()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handle_starttag(self, tag, attrs):
     self.handleStartTag(tag, dict(attrs))
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handle_endtag(self, tag):
     self.handleEndTag(tag)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handle_data(self, data):
     self.handleData(data)
 
@@ -85,40 +85,40 @@ class XMLTag():
     self._closed = closed
     self._children = []
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Tag(self) -> str:
     return self._tag
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Up(self) -> 'XMLTag':
     return self._parent
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Top(self):
     if self._parent is None:
       return self
     return self._parent.Top()
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Attr(self, attr:str, *args):
     return self._attrs.get(attr, *args)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Children(self):
     yield from self._children
 
   def ChildCount(self):
     return len(self._children)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def LastChild(self):
     return self._children[-1] if self._children else None
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def FirstChild(self):
     return self._children[0] if self._children else None
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def RemoveLastChild(self):
     self._children = self._children[:-1]
 
@@ -132,7 +132,7 @@ class XMLTag():
   def Content(self):
     return ''.join(self._Content())
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Select(self, tag=None, **attrs):
     if '_clazz' in attrs and 'class' not in attrs:
       attrs['class'] = attrs['_clazz']
@@ -143,7 +143,7 @@ class XMLTag():
       if type(child) == XMLTag:
         yield from child.Select(tag, **attrs)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def SelectDirect(self, tag=None, **attrs):
     if '_clazz' in attrs and 'class' not in attrs:
       attrs['class'] = attrs['_clazz']
@@ -156,7 +156,7 @@ class XMLTag():
           yield child
 
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _matches(self, tag, attrs):
     if tag != self._tag:
       return False
@@ -170,15 +170,15 @@ class XMLTag():
         return False
     return True
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def Close(self):
     self._closed = True
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def AppendChild(self, tag:'XMLTag'):
     self._children.append(tag)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def AppendData(self, data:str):
     self._children.append(data)
 
@@ -206,11 +206,11 @@ class ExtractorTreeParser(HTMLParserBase):
   def _reset(self):
     self._tags = []
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _content(self):
     return self._tags
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleStartTag(self, tag:str, attrs:dict):
     if tag != self._tag and self._current is None:
       return
@@ -224,7 +224,7 @@ class ExtractorTreeParser(HTMLParserBase):
     assert tag == self._tag
     self._current = XMLTag(None, tag, attrs)
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleEndTag(self, tag:str):
     if self._current is None:
       return
@@ -238,7 +238,7 @@ class ExtractorTreeParser(HTMLParserBase):
       self._tags.append(self._current)
     self._current = up
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleData(self, data:str):
     data = data.strip()
     if self._current is not None:
@@ -254,22 +254,22 @@ class LinkFinderParser(HTMLParserBase):
   def _reset(self):
     self._links = []
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _content(self):
     return self._links
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleStartTag(self, tag:str, attrs:dict):
     if tag != 'a':
       return
     if re.match(self._format, attrs['href']):
       self._links.append(attrs['href'])
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleEndTag(self, tag:str):
     return
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleData(self, data:str):
     return
 
@@ -285,11 +285,11 @@ class XMLTreeParser(HTMLParserBase):
   def _reset(self):
     self._tag = None
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def _content(self):
     return self._tag
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleStartTag(self, tag:str, attrs:dict):
     if self._isKnownToBeMissingClose(tag, attrs):
       self.handleEndTag(self._tag._tag)
@@ -303,7 +303,7 @@ class XMLTreeParser(HTMLParserBase):
       # Don't jump down a level for void tags!
       self._tag = newtag
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleEndTag(self, tag:str):
     void, self._allowVoid = self._allowVoid, ''
     if void:
@@ -331,7 +331,7 @@ class XMLTreeParser(HTMLParserBase):
     if parent is not None:
       self._tag = parent
 
-  @typecheck.Ensure
+  @typecheck.Assert
   def handleData(self, data:str):
     data = data.strip()
     if data:

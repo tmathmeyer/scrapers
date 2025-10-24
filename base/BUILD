@@ -3,7 +3,10 @@ langs("Python")
 py_library (
   name = "html",
   srcs = [ "html.py" ],
-  deps = [ "//impulse/util:typecheck" ],
+  deps = [ "//pylib/types:types" ],
+  python_packages = [
+    "requests",
+  ],
 )
 
 py_library (
@@ -11,6 +14,6 @@ py_library (
   srcs = [ "tables.py" ],
   deps = [
     ":html",
-    "//impulse/util:typecheck",
+    "//pylib/types:types",
   ],
 )
